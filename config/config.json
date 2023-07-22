@@ -1,0 +1,23 @@
+{"development": {
+  "username": "postgres",
+  "password": "macknight21",
+  "database": "fullstackCarApp",
+  "host": "localhost",
+  "dialect": "postgres"
+},
+"test": {
+  "username": "postgres",
+  "password": "macknight21",
+  "database": "fullstackCarApp",
+  "host": "localhost",
+  "dialect": "postgres"
+},
+"production": {
+  "username": "postgres",
+  "password": "macknight21",
+  "database": "fullstackCarApp",
+  "host": "localhost",
+  "dialect": "postgres"
+}
+}
+
