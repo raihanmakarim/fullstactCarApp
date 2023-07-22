@@ -8,6 +8,7 @@ import db from "./config/Database.js";
 import router from "./routes/index.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import FileUpload from "express-fileupload";
 
 dotenv.config();
 
@@ -23,6 +24,8 @@ try {
 app.use(cors({ credentials: true, origin: " http://localhost:3000" }));
 app.use(cookieParser());
 app.use(express.json());
+app.use(FileUpload());
+app.use(express.static("public"));
 app.use(router);
 
 const server = http.createServer(app);
