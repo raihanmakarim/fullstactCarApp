@@ -1,18 +1,27 @@
+import dotenv from "dotenv";
 import express from "express";
 import http from "http";
-import { Sequelize, DataTypes } from "sequelize";
-import bodyParser from "body-parser";
+import { DataTypes } from "sequelize";
 import cron from "node-cron";
 import { Server } from "socket.io";
+import db from "./config/Database.js";
+import router from "./routes/index.js";
+dotenv.config();
 
 const app = express();
+
+try {
+  await db.authenticate();
+  console.log("db connected");
+} catch (error) {
+  console.log(error);
+}
+
+app.use(express.json());
+app.use(router);
+
 const server = http.createServer(app);
-
 const io = new Server(server);
-
-const db = new Sequelize("database", "username", "password", {
-  dialect: "postgres",
-});
 
 const Car = db.define("car", {
   carName: {
@@ -29,8 +38,6 @@ const Car = db.define("car", {
   },
 });
 
-app.use(bodyParser.json());
-
 io.on("connection", (socket) => {
   console.log("a user connected");
 });
@@ -38,8 +45,6 @@ io.on("connection", (socket) => {
 app.get("/", (req, res) => {
   res.send("hello");
 });
-
-console.log("hello there you hey");
 
 cron.schedule("0 0 * * *", async () => {
   const cars = await Car.findAll();
