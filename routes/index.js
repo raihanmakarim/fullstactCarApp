@@ -4,6 +4,7 @@ import {
   Register,
   Login,
   Logout,
+  editProfile,
 } from "../controllers/UserController.js";
 import { verifyToken } from "../middleware/VerifyToken.js";
 import { refreshToken } from "../controllers/RefreshToken.js";
@@ -22,6 +23,8 @@ router.post("/users/register", Register);
 router.post("/users/login", Login);
 router.get("/token", refreshToken);
 router.delete("/logout", Logout);
+router.patch("/users/edit/:id", editProfile);
+
 router.get("/cars", getCars);
 router.post("/cars/create", createCar);
 router.patch("/cars/update/:id", updateCar);

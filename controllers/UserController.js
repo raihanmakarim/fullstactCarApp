@@ -138,3 +138,31 @@ export const Logout = async (req, res) => {
   res.clearCookie("refreshToken");
   return res.sendStatus(200);
 };
+
+export const editProfile = async (req, res) => {
+  const userId = req.user.id;
+  const { name, email, phone } = req.body;
+
+  try {
+    const updatedUser = await Users.update(
+      { name, email, phone },
+      { where: { id: userId } }
+    );
+
+    if (updatedUser[0] === 0) {
+      return res.status(404).json({
+        error: "User not found",
+      });
+    }
+
+    res.json({
+      message: "Profile updated successfully",
+      user: { id: userId, name, email, phone },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "An error occurred while updating the profile",
+    });
+  }
+};
