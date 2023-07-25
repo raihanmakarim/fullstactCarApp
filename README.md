@@ -20,13 +20,8 @@ To get started with the backend of the Full Stack Car App, follow these steps:
 git clone https://github.com/raihanmakarim/fullstactcarapp.git
 \`\`\`
 
-2. Navigate to the backend directory.
 
-\`\`\`bash
-cd fullstactcarapp/backend
-\`\`\`
-
-3. Install the required dependencies.
+2. Install the required dependencies.
 
 \`\`\`bash
 npm install
