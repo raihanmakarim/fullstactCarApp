@@ -14,6 +14,8 @@ import {
   updateCar,
   findCarById,
   deleteCar,
+  findCarByUserId,
+  getPromoCars,
 } from "../controllers/CarController.js";
 
 import {
@@ -33,10 +35,13 @@ router.delete("/logout", Logout);
 router.patch("/users/edit/:id", editProfile);
 
 router.get("/cars", getCars);
-router.post("/cars/create", createCar);
-router.patch("/cars/update/:id", updateCar);
+router.get("/cars/promo", getPromoCars);
+
+router.post("/cars/create", verifyToken, createCar);
+router.patch("/cars/update/:id", verifyToken, updateCar);
 router.get("/cars/:id", findCarById);
-router.delete("/cars/delete/:id", deleteCar);
+router.get("/cars/user/:id", verifyToken, findCarByUserId);
+router.delete("/cars/delete/:id", verifyToken, deleteCar);
 
 router.get("/cars/comments/:carId", getCarComments);
 router.post("/cars/comments/add/:carId", addCarComment);

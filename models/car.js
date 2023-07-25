@@ -39,6 +39,10 @@ const Cars = db.define(
     car_picture: {
       type: DataTypes.STRING(255),
     },
+    promotion_status: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
     updated_at: {
       type: DataTypes.DATE,
       allowNull: false,

@@ -15,7 +15,7 @@ export const getUsers = async (req, res) => {
 };
 
 export const Register = async (req, res) => {
-  const { name, email, phone, password, confPassword } = req.body;
+  const { name, phone, password, confPassword } = req.body;
 
   if (password !== confPassword) {
     return res.status(400).json({
@@ -33,7 +33,6 @@ export const Register = async (req, res) => {
   try {
     const newUser = await Users.create({
       name,
-      email,
       phone,
       password: hashPassword,
     });
@@ -85,14 +84,14 @@ export const Login = async (req, res) => {
       { userId, name, userPhone },
       process.env.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: "20s",
+        expiresIn: "3d",
       }
     );
     const refreshToken = jwt.sign(
       { userId, name, userPhone },
       process.env.REFRESH_TOKEN_SECRET,
       {
-        expiresIn: "20s",
+        expiresIn: "3d",
       }
     );
 

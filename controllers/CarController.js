@@ -2,20 +2,80 @@ import Cars from "../models/car.js";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
+import NodeCache from "node-cache";
+import { Op } from "sequelize";
+import CarComment from "../models/carComment.js";
+import Sequelize from "sequelize";
+
+const cache = new NodeCache({ stdTTL: 2 });
 
 export const getCars = async (req, res) => {
   try {
-    const cars = await Cars.findAll();
-    res.json(cars);
+    const { page, pageSize, search, minPrice, maxPrice } = req.query;
+    const offset = (page - 1) * pageSize;
+
+    let whereClause = {};
+    if (search) {
+      whereClause = {
+        [Op.or]: [
+          { car_name: { [Op.iLike]: `%${search}%` } },
+          { description: { [Op.iLike]: `%${search}%` } },
+          { address: { [Op.iLike]: `%${search}%` } },
+        ],
+      };
+    }
+
+    if (minPrice && maxPrice) {
+      whereClause = {
+        ...whereClause,
+        price: {
+          [Op.between]: [parseFloat(minPrice), parseFloat(maxPrice)],
+        },
+      };
+    }
+
+    const cacheKey = `getCars:${page}:${pageSize}:${search}:${minPrice}:${maxPrice}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      res.json(cachedData);
+    } else {
+      const cars = await Cars.findAll({
+        where: whereClause,
+        attributes: [
+          "id",
+          "user_id",
+          "car_name",
+          "promotion_end_date",
+          "description",
+          "price",
+          "address",
+          "mileage",
+          "car_picture",
+          "promotion_status",
+        ],
+        order: [
+          [Sequelize.literal("promotion_status DESC")],
+          ["promotion_end_date", "DESC"],
+        ],
+        limit: parseInt(pageSize),
+        offset: parseInt(offset),
+      });
+
+      cache.set(cacheKey, cars);
+      res.json(cars);
+    }
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: "Error fetching cars" });
   }
 };
 
 export const createCar = async (req, res) => {
-  if (!req.files.car_picture) {
+  if (!req.files) {
     return res.status(422).json({ msg: "No image provided" });
   }
+
+  const id = uuidv4();
 
   const {
     user_id,
@@ -31,7 +91,7 @@ export const createCar = async (req, res) => {
   try {
     const fileSize = car_picture.data.lengt;
     const ext = path.extname(car_picture.name);
-    const fileName = car_picture.md5 + ext;
+    const fileName = car_picture.md5 + id + ext;
     const url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
     const allowedType = [".png", ".jpg", ".jpeg"];
 
@@ -48,10 +108,11 @@ export const createCar = async (req, res) => {
         console.error(err.message);
         return res.status(500).json({ msg: "Failed to upload image" });
       }
-
+      const currentDate = new Date();
+      const promoStatus = new Date(promotion_end_date) > currentDate;
       try {
         await Cars.create({
-          id: uuidv4(),
+          id: id,
           user_id: user_id,
           car_name,
           promotion_end_date,
@@ -60,17 +121,20 @@ export const createCar = async (req, res) => {
           address,
           mileage,
           car_picture: url,
+          promotion_status: promoStatus,
         });
 
         res.status(201).json({ msg: "Car created successfully" });
       } catch (error) {
         console.error(error.message);
-        res.status(500).json({ msg: "Failed to create car" });
+        res.status(500).json({ msg: `Failed to create car ${error.message}` });
       }
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: "An error occurred while creating the car" });
+    res.status(500).json({
+      msg: `An error occurred while creating the car ${error.message}`,
+    });
   }
 };
 
@@ -93,7 +157,6 @@ export const updateCar = async (req, res) => {
   }
 
   let fileName = "";
-  console.log(req.files);
   if (req.files === null) {
     fileName = car.car_image;
   } else {
@@ -101,7 +164,7 @@ export const updateCar = async (req, res) => {
 
     const fileSize = car_picture.data.length;
     const ext = path.extname(car_picture.name);
-    fileName = car_picture.md5 + ext;
+    fileName = car_picture.md5 + id + ext;
     const allowedType = [".png", ".jpg", ".jpeg"];
 
     if (!allowedType.includes(ext.toLowerCase())) {
@@ -131,7 +194,7 @@ export const updateCar = async (req, res) => {
         price: price,
         address: address,
         mileage: mileage,
-        car_picture: url,
+        car_picture: req.files ? url : fileName,
       },
       {
         where: {
@@ -163,24 +226,66 @@ export const findCarById = async (req, res) => {
   }
 };
 
+export const findCarByUserId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cars = await Cars.findAll({
+      where: {
+        user_id: id,
+      },
+    });
+
+    if (!id) {
+      return res.status(404).json({ message: "USER not found" });
+    }
+
+    res.json(cars);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "An error occurred while finding the cars" });
+  }
+};
+
 export const deleteCar = async (req, res) => {
-  const product = await Cars.findCarById({
-    where: {
-      id: req.params.id,
-    },
-  });
+  const { id } = req.params;
+
+  const product = await Cars.findByPk(id);
+  const fullUrl = product.dataValues.car_picture;
+  const filename = fullUrl.substring(fullUrl.lastIndexOf("/") + 1);
+  console.log(filename); // Output: 821e5f5aed06510b032c09a19d1ce444.png
+
   if (!product) return res.status(404).json({ msg: "No Data Found" });
 
   try {
-    const filepath = `./public/images/${product.image}`;
-    fs.unlinkSync(filepath);
+    const filepath = `./public/images/${filename}`;
+    await CarComment.destroy({
+      where: { car_id: req.params.id },
+    });
     await Cars.destroy({
       where: {
         id: req.params.id,
       },
     });
+    fs.unlinkSync(filepath);
+
     res.status(200).json({ msg: "Cars Deleted Successfuly" });
+    console.log("Cars Deleted Successfuly");
   } catch (error) {
     console.log(error.message);
+  }
+};
+
+export const getPromoCars = async (req, res) => {
+  try {
+    const promoCars = await Cars.findAll({
+      where: {
+        promotion_status: true,
+      },
+    });
+
+    res.json(promoCars);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error fetching promo cars" });
   }
 };

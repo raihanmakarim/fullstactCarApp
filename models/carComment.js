@@ -1,7 +1,6 @@
 import { Sequelize } from "sequelize";
 import db from "../config/Database.js";
 const { DataTypes } = Sequelize;
-import Users from "./user.js";
 import Cars from "./car.js";
 
 const CarComment = db.define(
@@ -19,7 +18,7 @@ const CarComment = db.define(
     },
     user_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     text: {
       type: DataTypes.TEXT,
@@ -36,18 +35,6 @@ const CarComment = db.define(
   }
 );
 
-CarComment.belongsTo(Cars, {
-  foreignKey: "car_id",
-  targetKey: "id",
-  onDelete: "NO ACTION",
-  onUpdate: "NO ACTION",
-});
-
-CarComment.belongsTo(Users, {
-  foreignKey: "user_id",
-  targetKey: "id",
-  onDelete: "NO ACTION",
-  onUpdate: "NO ACTION",
-});
+CarComment.belongsTo(Cars, { foreignKey: "car_id", onDelete: "cascade" });
 
 export default CarComment;

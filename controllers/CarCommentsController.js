@@ -1,7 +1,7 @@
 // carCommentController.js
 
-import { CarComment } from "../models/carComment.js";
-import { Cars } from "../models/car.js";
+import CarComment from "../models/carComment.js";
+import Cars from "../models/car.js";
 
 export const getCarComments = async (req, res) => {
   const { carId } = req.params;
